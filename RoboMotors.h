@@ -8,9 +8,9 @@
 #ifndef ROBOMOTORS_H_
 #define ROBOMOTORS_H_
 #include "Arduino.h"
-#include "common.h"
 #include <AFMotor.h>
 #include <Servo.h>
+#include "Common.h"
 
 //The following are angle values to be used by the servo for commanding direction
 #define ANGLE_RIGHT 45

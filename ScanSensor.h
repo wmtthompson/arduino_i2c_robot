@@ -11,8 +11,8 @@
 #define SCANSENSOR_H_
 
 #include "Arduino.h"
-#include "common.h"
 #include <Servo.h>
+#include "Common.h"
 
 #define THRESHOLD_VERY_CLOSE 8  //8 cm
 #define THRESHOLD_NEAR 15 //15 cm
