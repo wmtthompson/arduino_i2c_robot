@@ -1,8 +1,10 @@
-/*
- * ScanSensor.cpp
+/**
+ *  @file ScanSensor.cpp
+ *
+ *	@brief Definitions for class that handles scanning sectors using the ultrasonic ping sensor and a pan servo.
  *
  *  Created on: Apr 22, 2022
- *      Author: william
+ *      Author: Wm. T. Thompson
  */
 
 #include "ScanSensor.h"

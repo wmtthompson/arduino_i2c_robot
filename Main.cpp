@@ -1,3 +1,12 @@
+/**
+ *  @file Main.cpp
+ *
+ *	@brief Main entry point for Robot Program. This program uses the old Arduino L293D motor shield.
+ *
+ *  Created on: Apr 22, 2022
+ *      Author: Wm. T. Thompson
+ */
+
 #include <Arduino.h>
 #include <AFMotor.h>
 #include <Servo.h>
@@ -5,9 +14,13 @@
 #include "RoboMotors.h"
 #include <Wire.h>
 
+#define SCAN_SENSOR_PAN_SERVO_PIN 10 /**< Pan servo pin */
+#define MOTOR1_NUM_ON_MOTOR_SHIELD 4 /**< Motor shield number 4 */
+#define MOTOR3_NUM_ON_MOTOR_SHIELD 3 /**< Motor shield number 3 */
+
 ScanSensor scs1(10);
 
-Scan_State ss2;
+ScanState ss2;
 Servo scan_servo;
 RoboMotors robot1;
 
@@ -29,7 +42,7 @@ volatile uint8_t command_received = 0;
 
 void receiveEvent(int howMany);
 void requestEvent();
-void get_next_state(Scan_State &ss1);
+void get_next_state(ScanState &ss1);
 
 void setup() {
 	  Serial.begin(9600);
@@ -81,12 +94,11 @@ void loop() {
 
 void receiveEvent(int howMany)
 {
-//	get_next_state(ss2);
+
 	char c;
 	if (Wire.available() >= sizeof(Action))
 	{
-//		Serial.print("Number of bytes available = ");
-//		Serial.println(Wire.available());
+
 		for(int i = 0; i < sizeof(Action); i++)
 		{
 			temp_buffer[i] = Wire.read();
@@ -108,12 +120,12 @@ void requestEvent()
 {
 
 	memset((void *)temp_buffer, 0, 13);
-	memcpy((void *)temp_buffer, (void *)&ss2, sizeof(Scan_State));
-	Wire.write(temp_buffer, sizeof(Scan_State));
+	memcpy((void *)temp_buffer, (void *)&ss2, sizeof(ScanState));
+	Wire.write(temp_buffer, sizeof(ScanState));
 
 }
 
-void get_next_state(Scan_State &ss1)
+void get_next_state(ScanState &ss1)
 {
 	uint8_t left = static_cast<uint8_t>(random(0,3));
 	uint8_t right = static_cast<uint8_t>(random(0,3));
