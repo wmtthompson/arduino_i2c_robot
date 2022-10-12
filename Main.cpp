@@ -15,8 +15,8 @@
 #include <Wire.h>
 
 #define SCAN_SENSOR_PAN_SERVO_PIN 10 /**< Pan servo pin */
-#define MOTOR1_NUM_ON_MOTOR_SHIELD 4 /**< Motor shield number 4 */
-#define MOTOR3_NUM_ON_MOTOR_SHIELD 3 /**< Motor shield number 3 */
+#define MOTOR1_NUM_ON_MOTOR_SHIELD 4 /**< Motor shield motor number 4 */
+#define MOTOR3_NUM_ON_MOTOR_SHIELD 3 /**< Motor shield motor number 3 */
 
 ScanSensor scs1(10);
 
