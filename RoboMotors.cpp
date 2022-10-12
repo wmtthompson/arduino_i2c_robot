@@ -137,6 +137,6 @@ void RoboMotors::command(Action &action)
 }
 
 RoboMotors::~RoboMotors() {
-	// TODO Auto-generated destructor stub
+	// Auto-generated destructor stub
 }
 

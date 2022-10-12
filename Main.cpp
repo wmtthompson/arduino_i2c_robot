@@ -14,74 +14,90 @@
 #include "RoboMotors.h"
 #include <Wire.h>
 
-#define SCAN_SENSOR_PAN_SERVO_PIN 10 /**< Pan servo pin */
-#define MOTOR1_NUM_ON_MOTOR_SHIELD 4 /**< Motor shield motor number 4 */
-#define MOTOR3_NUM_ON_MOTOR_SHIELD 3 /**< Motor shield motor number 3 */
+#define SCAN_SENSOR_PAN_SERVO_PIN 10 /**< Pan servo pin. */
+#define MOTOR1_NUM_ON_MOTOR_SHIELD 4 /**< Motor shield motor number 4. */
+#define MOTOR3_NUM_ON_MOTOR_SHIELD 3 /**< Motor shield motor number 3. */
 
-ScanSensor scs1(10);
+ScanSensor scan_sensor1(10); /**< Scan Sensor 1, initialized to use pin 10. */
 
-ScanState ss2;
-Servo scan_servo;
-RoboMotors robot1;
+ScanState scan_state1; /**< Scan State struct instance. */
+Servo scan_servo; /**< Servo object instance for use in scanning. */
+RoboMotors robot_motors1; /**< RobotMotors object instance. */
 
-Servo steering_servo;
-AF_DCMotor motor(4);
-AF_DCMotor motor3(3);
+Servo steering_servo; /**< Servo object instance for use in steering. */
 
-enum RobotMode {SCANNING, MOVING};
+AF_DCMotor af_motor1(4); // Adafruit DCMotor object instance for use in main driving wheels. */
+
+AF_DCMotor af_motor2(3); // Adafruit DCMotor object instance for use in main driving wheels. */
+
+enum RobotMode {SCANNING, MOVING}; /**< RobotMode enum to for robot state.*/
 
 
-char temp_buffer[13];
+char buffer[13]; /**< A buffer to hold data read from I2C.*/
 
-Action a1;
+Action action1; /**< An Action object instance used to manage commands.*/
 
-float rew1;
+RobotMode mode1 = SCANNING; /**< Robot state enum, initialized to SCANNING.*/
 
-RobotMode mode1 = SCANNING;
-volatile uint8_t command_received = 0;
+uint8_t command_received = 0; /**< A logical variable to keep track of commands received.*/
 
+/**
+ *  @brief The receiveEvent function handles an I2C receive event, in this case used to receive movement command.
+ *
+ *  @param int howMany is the number of bytes received.
+ */
 void receiveEvent(int howMany);
-void requestEvent();
-void get_next_state(ScanState &ss1);
 
+/**
+ *  @brief The requestEvent function handles an I2C request event. In this case, used to request scan data.
+ *
+ */
+void requestEvent();
+
+/**
+ *  @brief The setup function to be called to initialize variables pin modes, serial etc.
+ *
+ */
 void setup() {
 	  Serial.begin(9600);
 	  while (!Serial) {
 	    ; // wait for serial port to connect. Needed for native USB port only
 	  }
-	  scs1.setup(scan_servo);
-	  robot1.setup(steering_servo, motor, motor3);
+	  scan_sensor1.setup(scan_servo);
+	  robot_motors1.setup(steering_servo, af_motor1, af_motor2);
 	  Wire.begin(8);
+	  // Register the callbacks for I2C.
 	  Wire.onReceive(receiveEvent);
 	  Wire.onRequest(requestEvent);
-	  a1.direction = STOP;
-	  a1.speed = FAST;
-	  a1.steer = R;
 
-	  ss2.left = NEAR;
-	  ss2.right = NEAR;
-	  ss2.center = FAR;
+	  // Initializing
+	  action1.direction = STOP;
+	  action1.speed = FAST;
+	  action1.steer = R;
 
-	  Serial.print("Size of Action is = ");
-	  Serial.println(sizeof(a1));
+	  // Initializing
+	  scan_state1.left = NEAR;
+	  scan_state1.right = NEAR;
+	  scan_state1.center = FAR;
 }
 
+
 void loop() {
-//	scs1.get_scan(ss2);
-//	delay(1000);
+
+	// Switchyard for the state machine
 	switch(mode1)
 	{
-	case SCANNING:
-		scs1.get_scan(ss2);
+	case SCANNING: // scanning mode will do a scan unless otherwise commanded
+		scan_sensor1.get_scan(scan_state1);
 		Serial.println("In SCANNING MODE");
-		scs1.print_scan(ss2);
-		if (command_received == 1)
+		scan_sensor1.print_scan(scan_state1);
+		if (command_received == 1) //once a command is received, now in MOVING mode.
 		{
 			mode1 = MOVING;
 		}
 		break;
 	case MOVING:
-		robot1.command(a1);
+		robot_motors1.command(action1);
 		command_received = 0;
 		Serial.println("In MOVING MODE");
 		mode1 = SCANNING;
@@ -89,29 +105,30 @@ void loop() {
 	default:
 		break;
 	}
-	delay(1000);
+	delay(1000); // need to have some time for events to be processed.
 }
 
 void receiveEvent(int howMany)
 {
 
-	char c;
+	char dummy_character;
+
 	if (Wire.available() >= sizeof(Action))
 	{
 
 		for(int i = 0; i < sizeof(Action); i++)
 		{
-			temp_buffer[i] = Wire.read();
+			buffer[i] = Wire.read();
 		}
 
-		memcpy((void *)&a1, (void *)temp_buffer, sizeof(Action));
-		robot1.print_action(a1);
+		memcpy((void *)&action1, (void *)buffer, sizeof(Action));
+		robot_motors1.print_action(action1);
 
-		while (Wire.available() > 0 )
+		while (Wire.available() > 0 ) //empty the buffer if theres still some garbage.
 		{
-			c = Wire.read();
+			dummy_character = Wire.read();
 		}
-		command_received = 1;
+		command_received = 1; // set command received to 1, so that MOVING mode will be next.
 	}
 
 }
@@ -119,19 +136,9 @@ void receiveEvent(int howMany)
 void requestEvent()
 {
 
-	memset((void *)temp_buffer, 0, 13);
-	memcpy((void *)temp_buffer, (void *)&ss2, sizeof(ScanState));
-	Wire.write(temp_buffer, sizeof(ScanState));
+	memset((void *)buffer, 0, 13);
+	// Read the latest scan data and send it back on the I2C.
+	memcpy((void *)buffer, (void *)&scan_state1, sizeof(ScanState));
+	Wire.write(buffer, sizeof(ScanState));
 
-}
-
-void get_next_state(ScanState &ss1)
-{
-	uint8_t left = static_cast<uint8_t>(random(0,3));
-	uint8_t right = static_cast<uint8_t>(random(0,3));
-	uint8_t center = static_cast<uint8_t>(random(0,3));
-
-	ss1.left = static_cast<Scan>(left);
-	ss1.right = static_cast<Scan>(right);
-	ss1.center = static_cast<Scan>(center);
 }
